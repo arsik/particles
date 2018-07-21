@@ -51,7 +51,7 @@ var loader = new THREE.OBJLoader();
 
 loader.load( '/models/cube.obj', function ( object ) {
 	object.position.y = 440;
-	object.position.z = -200;
+	object.position.z = -200; 
 	object.position.x = 610;
   object.traverse( function ( child ) {
 
