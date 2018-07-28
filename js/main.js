@@ -1,3 +1,5 @@
+'use strict';
+
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 10000 );
 
@@ -8,92 +10,96 @@ document.body.appendChild( renderer.domElement );
 
 
 // create the particle variables
-var particleCount = 100000,
+var particleCount = 0,
+    maxParticlesInMesh = 3000,
     particles = new THREE.Geometry(),
     pMaterial = new THREE.PointsMaterial({
-      color: 0xFFFFFF,
+      color: 0x888888,
       size: 1
     });
 
-for( var i = 0; i < particleCount; i++ ){
-  var randX = Math.random() * 10000 - 5000;
-  var randY = Math.random() * 10000 - 5000;
-  var randZ = Math.random() * 10000 - 5000;
-  particle = new THREE.Vector3(randX, randY, randZ);
-  particle.endpoint = new THREE.Vector3(0, 0, 0);
-  particles.vertices.push(particle);
-}
 
 // create the particle system
-var particleSystem = new THREE.Points(
-    particles,
-    pMaterial);
-
-scene.add(particleSystem);
+var particleSystem = undefined;
 
 
 var gui = new dat.GUI();
 
 camera.position.x = 0;
-camera.position.y = 100;
-camera.position.z = 2000;
+camera.position.y = 500;
+camera.position.z = 500;
+camera.lookAt(new THREE.Vector3(0,0,-10));
 
 gui.add(camera.position, 'x', -2000, 2000).listen();
 gui.add(camera.position, 'y', -2000, 2000).listen();
 gui.add(camera.position, 'z', -2000, 2000).listen();
 
-//
-// var light = new THREE.PointLight( 0xffffff, 3, 3000 );
-// light.position.set( 10, 2000, 10 );
-// scene.add( light );
-//
-// var light = new THREE.AmbientLight( 0x404040 );
-// scene.add( light );
-
-var speed = 1;
-var maxSize = 20;
 
 var animate = function () {
 	requestAnimationFrame( animate );
 
-  var pCount = particleCount;
-  while (pCount--)
-  {
-    var particle = particles.vertices[pCount];
+  if(particleSystem !== undefined) {
 
-    if (particle.endpoint.x !== 0 && particle.endpoint.y !== 0 && particle.endpoint.z !== 0 ) {
+    particleSystem.rotation.x = -90;
+    particleSystem.rotation.z += 0.01;
 
-      if(particle.x < particle.endpoint.x * maxSize) particle.x += particle.endpoint.x / speed;
-      if(particle.y < particle.endpoint.y * maxSize) particle.y += particle.endpoint.y / speed;
-      if(particle.z < particle.endpoint.z * maxSize) particle.z += particle.endpoint.z / speed;
-
-      particleSystem.geometry.verticesNeedUpdate = true;
-    }
+    particleSystem.geometry.verticesNeedUpdate = true;
   }
 
 	renderer.render( scene, camera );
 };
 
+// BTN MOVE
+document.getElementById('btn-move').onclick = function() {
+
+  for(var pCount = 0; pCount < particleCount; pCount++) {
+
+    var particle = particles.vertices[pCount];
+    if (particle.endpoint.x !== 0 && particle.endpoint.y !== 0 && particle.endpoint.z !== 0 ) {
+
+      var scale = 10;
+      var endX = particle.endpoint.x * scale;
+      var endY = particle.endpoint.y * scale;
+      var endZ = particle.endpoint.z * scale;
+
+      TweenMax.to(particle, 2.0, {x: endX, y: endY, z: endZ, ease: Expo.easeInOut});
+    }
+
+  }
+
+};
+
 // // instantiate a loader
 var loader = new THREE.OBJLoader();
 
-loader.load( '/models/cube.obj', function ( object ) {
+loader.load( '/models/cars/Audi_A4.obj', function ( object ) {
 
   object.traverse( function ( child ) {
 
     if ( child instanceof THREE.Mesh )
     {
-      var randomPointPositions = THREE.GeometryUtils.randomPointsInBufferGeometry( child.geometry, particleCount  );
+      console.log('mesh');
+
+      var randomPointPositions = THREE.GeometryUtils.randomPointsInBufferGeometry( child.geometry, maxParticlesInMesh );
       for( var i = 0; i < randomPointPositions.length; i++ )
       {
-        var particle = particles.vertices[i];
-        particle.endpoint.x = randomPointPositions[i].x;
-        particle.endpoint.y = randomPointPositions[i].y;
-        particle.endpoint.z = randomPointPositions[i].z;
+        var randX = Math.random() * 10000 - 5000;
+        var randY = Math.random() * 10000 - 5000;
+        var randZ = Math.random() * 10000 - 5000;
+        var particle = new THREE.Vector3(randX, randY, randZ);
+        particle.endpoint = new THREE.Vector3(randomPointPositions[i].x, randomPointPositions[i].y, randomPointPositions[i].z);
+        particles.vertices.push(particle);
+
+        particleCount++;
       }
     }
 
 	});
+
+  console.log('particles: ' + particleCount);
+
+  particleSystem = new THREE.Points(particles, pMaterial);
+  scene.add(particleSystem);
 
 },
 function ( xhr ) {
